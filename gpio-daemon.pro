@@ -20,21 +20,14 @@ message($${DEFINES})
 INCLUDEPATH += ./inc
 
 SOURCES += \
-    src/tohkbd.cpp \
-    src/toh.cpp \
-    src/tca8424.cpp \
-    src/worker.cpp \
-    src/tohkeyboard.cpp \
-    src/uinputif.cpp \
     src/gpio.cpp \
+    src/toh.cpp \
+    src/worker.cpp \
     src/gpio-dbus.cpp
 
 HEADERS += \
     inc/toh.h \
-    inc/tca8424.h \
     inc/worker.h \
-    inc/tohkeyboard.h \
-    inc/uinputif.h \
     inc/gpio-dbus.h \
     inc/gpio.h
 

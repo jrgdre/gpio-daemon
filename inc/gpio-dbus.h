@@ -24,7 +24,6 @@ public:
 
     ~Gpio()
     {
-        /* Disable everything */
         setInterruptEnable(false);
     }
 
@@ -43,7 +42,7 @@ private:
 
     QMutex mutex;
 
-    static bool interruptsEnabled;
+    bool interruptsEnabled;
 
     int gpio_fd;
 };

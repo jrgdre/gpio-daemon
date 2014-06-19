@@ -21,6 +21,7 @@
 #include <QDBusConnection>
 #include <QDBusMessage>
 
+
 int main(int argc, char **argv)
 {
     QCoreApplication app(argc, argv);
@@ -30,7 +31,7 @@ int main(int argc, char **argv)
     setlinebuf(stdout);
     setlinebuf(stderr);
 
-    printf("Starting gpio daemon. Version %s build %s %s\n", GITHASH, __DATE__, __TIME__);
+    printf("Starting gpio daemon. Version %s build %s %s\n", APPVERSION, __DATE__, __TIME__);
 
 //    if (!QDBusConnection::systemBus().isConnected())
 //    {
@@ -56,9 +57,9 @@ int main(int argc, char **argv)
 
     printf("Registered %s to D-Bus systembus\n", SERVICE_NAME);
 
-    Gpio gpio;
+    gpio = new Gpio();
 
-    QDBusConnection::sessionBus().registerObject("/", &gpio, QDBusConnection::ExportAllSlots);
+    QDBusConnection::sessionBus().registerObject("/", gpio, QDBusConnection::ExportAllSlots);
 
 
     return app.exec();
@@ -96,8 +97,7 @@ void signalHandler(int sig) /* signal handler function */
 		case SIGTERM:
 			/* finalize the server */
             printf("Received signal SIGTERM\n");
-            deinitOled();
-            controlVdd(0);
+            delete gpio;
 			exit(0);
 			break;		
 	}	

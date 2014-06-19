@@ -47,7 +47,7 @@ Gpio::Gpio()
 
 /* DBus Exposed call methods */
 
-QString Toholed::testSomething()
+QString Gpio::testSomething()
 {
     printf("testing received\n");
     return QString("Sorry, there is nothing to test...");
@@ -59,8 +59,6 @@ QString Toholed::testSomething()
 
 int Gpio::setInterruptEnable(bool turn)
 {
-    int fd;
-
     if(turn)
     {
         mutex.lock();
@@ -122,7 +120,7 @@ void Gpio::handleGpioInterrupt()
     mutex.lock();
 
     /* do it here */
-    printf("Got interrupt\n");
+    printf("Got falling edge on TOH gpio");
 
     mutex.unlock();
 

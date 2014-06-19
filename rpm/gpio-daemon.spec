@@ -58,6 +58,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_sbindir}/%{name}
 /etc/systemd/system/%{name}.service
+/etc/dbus-1/system.d/%{name}.conf
 
 # >> files
 # << files

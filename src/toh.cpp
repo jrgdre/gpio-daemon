@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "gpio.h"
+#include "toh.h"
 
 
 int releaseTohInterrupt(int fdGpio)
