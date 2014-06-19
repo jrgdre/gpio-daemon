@@ -59,11 +59,9 @@ int main(int argc, char **argv)
 
     gpio = new Gpio();
 
-    QDBusConnection::sessionBus().registerObject("/", gpio, QDBusConnection::ExportAllSlots);
-
+    QDBusConnection::sessionBus().registerObject("/", gpio, QDBusConnection::ExportAllSlots | QDBusConnection::ExportAllSignals);
 
     return app.exec();
-
 }
 
 

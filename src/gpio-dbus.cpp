@@ -120,7 +120,9 @@ void Gpio::handleGpioInterrupt()
     mutex.lock();
 
     /* do it here */
-    printf("Got falling edge on TOH gpio");
+    printf("Got falling edge on TOH gpio\n");
+
+    emit gpioStateChanged();
 
     mutex.unlock();
 

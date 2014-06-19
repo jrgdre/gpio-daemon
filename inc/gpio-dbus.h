@@ -30,6 +30,10 @@ public:
 public slots:
     QString testSomething();
 
+signals:
+    void gpioStateChanged();
+
+
 private slots:
 
     /* interrupts */
