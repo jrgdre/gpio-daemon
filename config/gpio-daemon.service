@@ -1,0 +1,12 @@
+[Unit]
+Description=GPIO Control daemon
+After=dbus.service
+
+[Service]
+ExecStart=/usr/sbin/gpio-daemon
+Restart=always
+RestartSec=5
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/100000/dbus/user_bus_socket
+
+[Install]
+WantedBy=multi-user.target
