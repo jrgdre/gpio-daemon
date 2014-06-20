@@ -13,7 +13,7 @@ Name:       gpio-daemon
 %{!?qtc_make:%define qtc_make make}
 %{?qtc_builddir:%define _builddir %qtc_builddir}
 
-Summary:    gpio-daemon
+Summary:    GPIO daemon for jolla
 Version:    0.1
 Release:    1
 Group:      Qt/Qt
@@ -25,7 +25,7 @@ BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
 
 %description
-gpio-daemon
+Daemon to control and monitor TOH GPIO pin state
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -57,8 +57,8 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 %{_sbindir}/%{name}
-/etc/systemd/system/%{name}.service
-/etc/dbus-1/system.d/%{name}.conf
+%config /etc/systemd/system/%{name}.service
+%config /etc/dbus-1/system.d/%{name}.conf
 
 # >> files
 # << files
@@ -81,3 +81,4 @@ if [ "$1" = "0" ]; then
   systemctl disable %{name}.service
 fi
 
+%changelog

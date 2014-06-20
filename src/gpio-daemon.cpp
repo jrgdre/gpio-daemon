@@ -31,7 +31,7 @@ int main(int argc, char **argv)
     setlinebuf(stdout);
     setlinebuf(stderr);
 
-    printf("Starting gpio daemon. Version %s build %s %s\n", APPVERSION, __DATE__, __TIME__);
+    printf("Starting gpio daemon. Version %s\n", APPVERSION);
 
 //    if (!QDBusConnection::systemBus().isConnected())
 //    {
