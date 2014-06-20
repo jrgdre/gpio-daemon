@@ -1,4 +1,6 @@
 
+int setGpio(int state);
+int setGpioDir(bool output);
 void exportGpio();
 void unexportGpio();
 int getTohInterrupt(char *edge);

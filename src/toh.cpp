@@ -15,6 +15,59 @@
 #include <unistd.h>
 #include "toh.h"
 
+int setGpioDir(bool output)
+{
+    int fd = open("/sys/class/gpio/gpio" GPIO_INT "/direction", O_WRONLY);
+
+    if (fd >= 0)
+    {
+        if (write (fd, output ? "out" : "in", output ? 3 : 2) != output ? 3 : 2)
+        {
+            printf("error in setting GPIO direction\n");
+            close (fd);
+            return false;
+        }
+        else
+        {
+            printf("direction set to %s\n", output ? "output" : "input");
+            close(fd);
+        }
+    }
+    else
+    {
+        return false;
+    }
+
+    return true;
+}
+
+int setGpio(int state)
+{
+    int fd = open("/sys/class/gpio/gpio" GPIO_INT "/value", O_WRONLY);
+
+    if (fd >= 0)
+    {
+        if (write (fd, state ? "1" : "0", 1) != 1)
+        {
+            printf("error in setting GPIO state\n");
+            close (fd);
+            return false;
+        }
+        else
+        {
+            printf("state set to %d\n", state);
+            close(fd);
+        }
+    }
+    else
+    {
+        printf("error in setting GPIO state\n");
+        return false;
+    }
+
+    return true;
+}
+
 
 int releaseTohInterrupt(int fdGpio)
 {

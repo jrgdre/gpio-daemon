@@ -74,7 +74,20 @@ int Gpio::getGpioState()
 
 void Gpio::setGpioState(int state)
 {
-    printf("setGpioState(%d)\n", state);
+    if (state == 1)
+    {
+        setGpioDir(false);
+        setGpio(state);
+    }
+    else if (state == 0)
+    {
+        setGpioDir(true);
+        setGpio(state);
+    }
+    else
+    {
+        printf("invalid state %d\n", state);
+    }
 }
 
 
