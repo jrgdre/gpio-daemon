@@ -20,15 +20,15 @@ message($${DEFINES})
 INCLUDEPATH += ./inc
 
 SOURCES += \
-    src/gpio.cpp \
     src/toh.cpp \
     src/worker.cpp \
-    src/gpio-dbus.cpp
+    src/gpio-daemon.cpp \
+    src/gpio.cpp
 
 HEADERS += \
     inc/toh.h \
     inc/worker.h \
-    inc/gpio-dbus.h \
+    inc/gpio-daemon.h \
     inc/gpio.h
 
 OTHER_FILES += \

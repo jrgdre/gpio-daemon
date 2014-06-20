@@ -23,21 +23,23 @@ int releaseTohInterrupt(int fdGpio)
 
     close(fdGpio);
 
-    fd = open("/sys/class/gpio/unexport", O_WRONLY);
+    fd = open("/sys/class/gpio/gpio" GPIO_INT "/edge", O_WRONLY);
 
     if (!(fd < 0))
     {
-        write (fd, GPIO_INT, strlen(GPIO_INT));
+        write (fd, GPIO_INT_EDGE_NONE, strlen(GPIO_INT_EDGE_NONE));
         close(fd);
     }
+    else
+        return -1; /* error */
+
+
     return fd;
 
 }
 
-
-int getTohInterrupt()
+void exportGpio()
 {
-
     int fd;
 
     fd = open("/sys/class/gpio/export", O_WRONLY);
@@ -47,12 +49,34 @@ int getTohInterrupt()
         write (fd, GPIO_INT, strlen(GPIO_INT));
         close(fd);
     }
+}
+
+void unexportGpio()
+{
+    int fd;
+
+    fd = open("/sys/class/gpio/unexport", O_WRONLY);
+
+    if (!(fd < 0))
+    {
+        write (fd, GPIO_INT, strlen(GPIO_INT));
+        close(fd);
+    }
+
+}
+
+
+int getTohInterrupt(char *edge)
+{
+
+
+    int fd;
 
     fd = open("/sys/class/gpio/gpio" GPIO_INT "/edge", O_WRONLY);
 
     if (!(fd < 0))
     {
-        write (fd, GPIO_INT_EDGE, strlen(GPIO_INT_EDGE));
+        write (fd, edge, strlen(edge));
         close(fd);
     }
     else
@@ -63,5 +87,4 @@ int getTohInterrupt()
 
     return fd;
 }
-
 

@@ -45,7 +45,7 @@ void Worker::doWork()
     int nfds = 1;
 
     int timeout;
-    char *buf[20];
+    char buf[20];
 
     timeout = POLL_TIMEOUT;
 

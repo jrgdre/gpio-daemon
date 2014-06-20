@@ -1,7 +1,9 @@
 
-int getTohInterrupt();
+void exportGpio();
+void unexportGpio();
+int getTohInterrupt(char *edge);
 int releaseTohInterrupt(int fdGpio);
 
 #define GPIO_INT "67"
-#define GPIO_INT_EDGE "falling"
-#define POLL_TIMEOUT 600000
+#define GPIO_INT_EDGE_NONE "none"
+#define POLL_TIMEOUT 1000

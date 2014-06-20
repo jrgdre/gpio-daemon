@@ -1,102 +1,172 @@
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <unistd.h>
-#include <syslog.h>
-#include <string.h>
+/*
+ * (C) 2014 Kimmo Lindholm <kimmo.lindholm@gmail.com> Kimmoli
+ *
+ * toholed daemon, d-bus server call method functions.
+ *
+ *
+ *
+ *
+ */
+
+
+#include <QtCore/QCoreApplication>
+#include <QtCore/QString>
+#include <QtDBus/QtDBus>
+#include <QDBusArgument>
+#include <QtCore/QTimer>
+#include <QTime>
+#include <QTimer>
+#include <QThread>
+
 #include <sys/time.h>
 #include <time.h>
-#include <signal.h>
+#include <unistd.h>
+
+#include <fcntl.h>
+
+#include <poll.h>
 
 #include "gpio.h"
 #include "toh.h"
-#include "gpio-dbus.h"
-
-#include <QtCore/QCoreApplication>
-#include <QtCore/QStringList>
-#include <QtDBus/QtDBus>
-#include <QDBusConnection>
-#include <QDBusMessage>
 
 
-int main(int argc, char **argv)
+/* Main */
+Gpio::Gpio()
 {
-    QCoreApplication app(argc, argv);
+    thread = new QThread();
+    worker = new Worker();
 
-    daemonize();
+    worker->moveToThread(thread);
+    connect(worker, SIGNAL(gpioInterruptCaptured()), this, SLOT(handleGpioInterrupt()));
+    connect(worker, SIGNAL(workRequested()), thread, SLOT(start()));
+    connect(thread, SIGNAL(started()), worker, SLOT(doWork()));
+    connect(worker, SIGNAL(finished()), thread, SLOT(quit()), Qt::DirectConnection);
 
-    setlinebuf(stdout);
-    setlinebuf(stderr);
+    interruptsEnabled = false;
+    debounceTimeout = 100; /* Default debounce timeout 100 ms */
+    edges = "none";
 
-    printf("Starting gpio daemon. Version %s build %s %s\n", APPVERSION, __DATE__, __TIME__);
+    exportGpio();
 
-//    if (!QDBusConnection::systemBus().isConnected())
-//    {
-//        printf("Cannot connect to the D-Bus systemBus\n%s\n", qPrintable(QDBusConnection::systemBus().lastError().message()));
-//        exit(EXIT_FAILURE);
-//    }
-//    printf("Connected to D-Bus systembus\n");
+    gpio_fd = -1;
 
-    printf("Environment %s\n", qPrintable(getenv ("DBUS_SESSION_BUS_ADDRESS")));
+    debounce = new QTimer(this);
+    debounce->setInterval( debounceTimeout );
+    debounce->setSingleShot(true);
 
-    if (!QDBusConnection::sessionBus().isConnected())
-    {
-        printf("Cannot connect to the D-Bus sessionBus\n%s\n", qPrintable(QDBusConnection::sessionBus().lastError().message()));
-        exit(EXIT_FAILURE);
-    }
-    printf("Connected to D-Bus sessionbus\n");
-
-    if (!QDBusConnection::sessionBus().registerService(SERVICE_NAME))
-    {
-        printf("Cannot register service to systemBus\n%s\n", qPrintable(QDBusConnection::sessionBus().lastError().message()));
-        exit(EXIT_FAILURE);
-    }
-
-    printf("Registered %s to D-Bus systembus\n", SERVICE_NAME);
-
-    gpio = new Gpio();
-
-    QDBusConnection::sessionBus().registerObject("/", gpio, QDBusConnection::ExportAllSlots | QDBusConnection::ExportAllSignals);
-
-    return app.exec();
+    connect(debounce, SIGNAL(timeout()), this, SLOT(handleDebounceTimer()));
 }
 
 
-void daemonize()
+/* DBus Exposed call methods */
+
+int Gpio::getGpioState()
 {
-	/* Change the file mode mask */
-	umask(0);
+    char buf[20];
+    int fd;
 
-	/* Change the current working directory */
-	if ((chdir("/tmp")) < 0) 
-		exit(EXIT_FAILURE);
+    fd = open("/sys/class/gpio/gpio" GPIO_INT "/value", O_RDONLY | O_NONBLOCK);
+    read(fd, buf, 1);
+    close(fd);
 
-	/* register signals to monitor / ignore */
-	signal(SIGCHLD,SIG_IGN); /* ignore child */
-	signal(SIGTSTP,SIG_IGN); /* ignore tty signals */
-	signal(SIGTTOU,SIG_IGN);
-	signal(SIGTTIN,SIG_IGN);
-	signal(SIGHUP,signalHandler); /* catch hangup signal */
-	signal(SIGTERM,signalHandler); /* catch kill signal */
+    return buf[0] == 49;
+}
+
+void Gpio::setGpioState(int state)
+{
+    printf("setGpioState(%d)\n", state);
 }
 
 
-void signalHandler(int sig) /* signal handler function */
+void Gpio::gpioInterruptEnable(QString edge)
 {
-	switch(sig)
-	{
-		case SIGHUP:
-			/* rehash the server */
-            printf("Received signal SIGHUP\n");
-			break;		
-		case SIGTERM:
-			/* finalize the server */
-            printf("Received signal SIGTERM\n");
-            delete gpio;
-			exit(0);
-			break;		
-	}	
+    edges = edge;
+    setInterruptEnable(true, edge);
+}
+
+void Gpio::gpioInterruptDisable()
+{
+    setInterruptEnable(false, QString());
+}
+
+void Gpio::setGpioInterruptDebounceTimeout(int timeout)
+{
+    debounceTimeout = timeout;
+    debounce->setInterval(debounceTimeout);
+}
+
+
+/* Enable or disable interrupts */
+
+int Gpio::setInterruptEnable(bool turn, QString edge)
+{
+    if (turn)
+    {
+        /* if enabling check that 'edge' is valid */
+        if (!(!QString::localeAwareCompare( edge, "falling") ||
+                !QString::localeAwareCompare( edge, "rising") ||
+                !QString::localeAwareCompare( edge, "both") ||
+                !QString::localeAwareCompare( edge, "none") ))
+        {
+            printf("Invalid edge '%s'' provided\n", qPrintable(edge));
+            return -1;
+        }
+    }
+
+    worker->abort();
+    thread->wait(); // If the thread is not running, this will immediately return.
+
+    /* Release interrupt first if it is already */
+    if (gpio_fd >= 0)
+    {
+        releaseTohInterrupt(gpio_fd);
+        gpio_fd = -1;
+    }
+
+    if (turn) /* Enable */
+    {
+        printf("Enabling interrupt\n");
+
+        gpio_fd = getTohInterrupt(edge.toUtf8().data());
+
+        if (gpio_fd < 0)
+        {
+            printf("Failed to register toh gpio interrupt\n");
+        }
+        else
+        {
+            worker->requestWork(gpio_fd);
+
+            printf("Worker started\n");
+
+            interruptsEnabled = true;
+        }
+    }
+    else
+    {
+        interruptsEnabled = false;
+        printf("Interrupt disabled succesfully\n");
+    }
+
+    return interruptsEnabled;
+}
+
+
+/* GPIO interrupt handler */
+
+void Gpio::handleGpioInterrupt()
+{
+    if (!debounce->isActive())
+        debounce->start();
+}
+
+void Gpio::handleDebounceTimer()
+{
+    int state = getGpioState();
+
+    if (edges == "both" || (edges == "rising" && state == 1) || (edges == "falling" && state == 0))
+    {
+        printf("%s edge\n", state ? "rising" : "falling");
+        emit gpioStateChanged(state);
+    }
 }
