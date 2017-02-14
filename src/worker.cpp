@@ -9,6 +9,7 @@
 #include <QDBusConnection>
 #include <QDBusMessage>
 
+#include <unistd.h>
 
 Worker::Worker(QObject *parent) :
     QObject(parent)
